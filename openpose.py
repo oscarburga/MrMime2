@@ -7,6 +7,7 @@ net=cv.dnn.readNetFromTensorflow("graph_opt.pb")## weigths
 inWidth=368
 inHeight=368
 thr=0.2
+points=[]
 
 BODY_PARTS = { "Nose": 0, "Neck": 1, "RShoulder": 2, "RElbow": 3, "RWrist": 4,
                    "LShoulder": 5, "LElbow": 6, "LWrist": 7, "RHip": 8, "RKnee": 9,
@@ -31,6 +32,7 @@ def pose_estimation(frame):
     out=out[:, :19, :, :]
     
     assert(len(BODY_PARTS) <= out.shape[1])
+    global points 
     points = []
     for i in range(len(BODY_PARTS)):
         # Slice heatmap of corresponding body's part.
@@ -62,7 +64,15 @@ def pose_estimation(frame):
     t, _ = net.getPerfProfile()
     freq = cv.getTickFrequency() / 1000
     cv.putText(frame, '%.2fms' % (t / freq), (10, 20), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
-    print(points)
     return frame, points
 
 estimated_image=pose_estimation(img)
+xs=[]
+ys=[]
+for i, (x, y) in enumerate(points):
+    if i == 2 or i == 3 or i == 4 or i==5 or i==6 or i==7 or i==8 or i==11:
+        xs.append(x)
+        ys.append(y)
+print(points)
+print(xs)
+print(ys)
