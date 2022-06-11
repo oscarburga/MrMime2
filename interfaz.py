@@ -39,14 +39,14 @@ def iniciar():
 
 def hpe ():
     global my_image2, my_image_label2
-    root.filename = filedialog.askopenfilename(initialdir="/Documentos/GitHub/MrMime2", title="Select a File", filetypes=(("jpg files", "*.jpg"),("png files", "*.png")))
+    root.filename = filedialog.askopenfilename(initialdir="/Documentos/GitHub/MrMime2", title="Select a File", filetypes=[("image", "*.jpg"),("image", "*.png")])
     my_image2 = ImageTk.PhotoImage(Image.open(root.filename).resize((200, 200)))
     my_image_label2 = tk.Label(image=my_image2)
     my_image_label2.place(x=380, y=200)
 
 def open():
     global my_image, my_image_label, my_label, btn_hpe
-    root.filename = filedialog.askopenfilename(initialdir="/Documentos/GitHub/MrMime2", title="Select a File", filetypes=(("jpg files", "*.jpg"),("png files", "*.png")))
+    root.filename = filedialog.askopenfilename(title="Select a File", filetypes=[("jpg files", ".jpg"),("image", ".png")])
     my_label = tk.Label(root, text="Ruta de la imagen: \n\n" + root.filename, fg="black", bg="white", font='Helvetica 10 bold')
     my_label.place(x=0, y=25)
     my_image = ImageTk.PhotoImage(Image.open(root.filename).resize((200, 200)))
@@ -66,4 +66,10 @@ my_btn2.place(x=720, y = 20)
 
 lblVideo = tk.Label(root)
 lblVideo.place(x=80, y=120)
+
+points = []
+if points:
+    print(points)
+else:
+    print("no")
 root.mainloop()

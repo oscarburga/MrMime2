@@ -1,7 +1,12 @@
+from matplotlib import image
 from naoqi import ALProxy
 import matplotlib.pyplot as plt
 import numpy as np
 import math
+import Tkinter as tk
+from PIL import ImageTk, Image
+import tkFileDialog as filedialog
+import imutils
 import cv2 as cv
 
 class Vector:
@@ -30,11 +35,19 @@ def angle(p,q):
 
 net=cv.dnn.readNetFromTensorflow("graph_opt.pb")## weigths
 
-
+NAO_HOST = "127.0.0.1"
+NAO_PORT = 9559
+Motion = ALProxy("ALMotion", NAO_HOST, NAO_PORT)
+Speech = ALProxy("ALTextToSpeech", NAO_HOST, NAO_PORT)
+#names = ['LElbowRoll', 'LShoulderRoll', 'LShoulderPitch']
+names = ['RElbowRoll', 'RShoulderRoll', 'LElbowRoll', 'LShoulderRoll','RElbowYaw','LElbowYaw']
+#times = [[1.0], [1.2], [1.3]]
+times = [[1.0], [1.2],[1.0], [1.2],[1.0], [1.2]]
 inWidth=368
 inHeight=368
 thr=0.2
 points=[]
+flag = 0
 
 BODY_PARTS = { "Nose": 0, "Neck": 1, "RShoulder": 2, "RElbow": 3, "RWrist": 4,
                    "LShoulder": 5, "LElbow": 6, "LWrist": 7, "RHip": 8, "RKnee": 9,
@@ -44,12 +57,6 @@ BODY_PARTS = { "Nose": 0, "Neck": 1, "RShoulder": 2, "RElbow": 3, "RWrist": 4,
 POSE_PAIRS = [ ["Neck", "RShoulder"], ["Neck", "LShoulder"], ["RShoulder", "RElbow"],
                 ["RElbow", "RWrist"], ["LShoulder", "LElbow"], ["LElbow", "LWrist"],
                 ["Neck", "RHip"], ["Neck", "LHip"] ]
-
-img=cv.imread("image.jpg")
-
-plt.imshow(img) 
-
-plt.imshow(cv.cvtColor(img,cv.COLOR_BGR2RGB))
 
 def pose_estimation(frame):
     frameWidth = frame.shape[1]
@@ -91,65 +98,163 @@ def pose_estimation(frame):
     t, _ = net.getPerfProfile()
     freq = cv.getTickFrequency() / 1000
     cv.putText(frame, '%.2fms' % (t / freq), (10, 20), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
-    return frame, points
+    return points
 
-estimated_image=pose_estimation(img)
-xs=[]
-ys=[]
-for i, (x, y) in enumerate(points):
-    if i == 2 or i == 3 or i == 4 or i==5 or i==6 or i==7 or i==8 or i==11:
-        xs.append(x)
-        ys.append(y)
-print(points)
-print(xs)
-print(ys)
+def getAnglesFromPoints(points):
+    xs=[]
+    ys=[]
+    for i, pos in enumerate(points):
+        if i == 2 or i == 3 or i == 4 or i==5 or i==6 or i==7 or i==8 or i==11:
+            xs.append(None if pos is None else pos[0])
+            ys.append(None if pos is None else pos[1])
+    print(points)
+    print(xs)
+    print(ys)
 
-#RElbowRoll and RShoulderRoll
-PRElbow=Vector(xs[1],ys[1],xs[0],ys[0])
-QRElbow=Vector(xs[1],ys[1],xs[2],ys[2])
-PRShoulder=Vector(xs[0],ys[0],xs[6],ys[6])
-QRShoulder=Vector(xs[0],ys[0],xs[1],ys[1])
+    #RElbowRoll and RShoulderRoll
+    PRElbow=Vector(xs[1],ys[1],xs[0],ys[0])
+    QRElbow=Vector(xs[1],ys[1],xs[2],ys[2])
+    PRShoulder=Vector(xs[0],ys[0],xs[6],ys[6])
+    QRShoulder=Vector(xs[0],ys[0],xs[1],ys[1])
 
-#LElbowRoll and lShoulderRoll
-PLElbow=Vector(xs[4],ys[4],xs[3],ys[3])
-QLElbow=Vector(xs[4],ys[4],xs[5],ys[5])
-PLShoulder=Vector(xs[3],ys[3],xs[7],ys[7])
-QLShoulder=Vector(xs[3],ys[3],xs[4],ys[4])
+    #LElbowRoll and lShoulderRoll
+    PLElbow=Vector(xs[4],ys[4],xs[3],ys[3])
+    QLElbow=Vector(xs[4],ys[4],xs[5],ys[5])
+    PLShoulder=Vector(xs[3],ys[3],xs[7],ys[7])
+    QLShoulder=Vector(xs[3],ys[3],xs[4],ys[4])
 
-#Variables
-RElbowRoll=angle(PRElbow.vector, QRElbow.vector)
-LElbowRoll=angle(PLElbow.vector, QLElbow.vector)
-RShoulderRoll = angle(PRShoulder.vector, QRShoulder.vector)
-LShoulderRoll = angle(PLShoulder.vector, QLShoulder.vector)
+    #Variables
+    RElbowRoll = None
+    LElbowRoll = None
+    RShoulderRoll = None
+    LShoulderRoll = None
 
-angles = []
-angles.append(RElbowRoll-1.8)
-angles.append(-1*RShoulderRoll)
-angles.append(LElbowRoll+1.8)
-angles.append(-1*LShoulderRoll)
-angles.append(-0.7)
-angles.append(0.7)
+    if PRElbow.isOk and QRElbow.isOk:
+        RElbowRoll=angle(PRElbow.vector, QRElbow.vector)
 
-print(angles)
+    if PLElbow.isOk and QLElbow.isOk:
+        LElbowRoll=angle(PLElbow.vector, QLElbow.vector)
+
+    if PRShoulder.isOk and QRShoulder.isOk:
+        RShoulderRoll = angle(PRShoulder.vector, QRShoulder.vector)
+
+    if PLShoulder.isOk and QLShoulder.isOk:
+        LShoulderRoll = angle(PLShoulder.vector, QLShoulder.vector)
+
+    def addMindNone(x, y):
+        if x is None or y is None:
+            return None
+        return x + y
+
+    def mulMindNone(x, y):
+        if x is None or y is None:
+            return None
+        return x * y
+
+    angles = []
+    angles.append(addMindNone(RElbowRoll, -1.8))
+    angles.append(mulMindNone(-1, RShoulderRoll))
+    angles.append(addMindNone(LElbowRoll, 1.8))
+    angles.append(mulMindNone(-1, LShoulderRoll))
+    angles.append(-0.7)
+    angles.append(0.7)
+
+    print(angles)
+    return angles
+
+def getAnglesFromPoints2(points):
+    xs=[]
+    ys=[]
+    for i, (x, y) in enumerate(points):
+        if i == 2 or i == 3 or i == 4 or i==5 or i==6 or i==7 or i==8 or i==11:
+            xs.append(x)
+            ys.append(y)
+    print(points)
+    print(xs)
+    print(ys)
+
+    #RElbowRoll and RShoulderRoll
+    PRElbow=Vector(xs[1],ys[1],xs[0],ys[0])
+    QRElbow=Vector(xs[1],ys[1],xs[2],ys[2])
+    PRShoulder=Vector(xs[0],ys[0],xs[6],ys[6])
+    QRShoulder=Vector(xs[0],ys[0],xs[1],ys[1])
+
+    #LElbowRoll and lShoulderRoll
+    PLElbow=Vector(xs[4],ys[4],xs[3],ys[3])
+    QLElbow=Vector(xs[4],ys[4],xs[5],ys[5])
+    PLShoulder=Vector(xs[3],ys[3],xs[7],ys[7])
+    QLShoulder=Vector(xs[3],ys[3],xs[4],ys[4])
+
+    #Variables
+    RElbowRoll=angle(PRElbow.vector, QRElbow.vector)
+    LElbowRoll=angle(PLElbow.vector, QLElbow.vector)
+    RShoulderRoll = angle(PRShoulder.vector, QRShoulder.vector)
+    LShoulderRoll = angle(PLShoulder.vector, QLShoulder.vector)
+
+    angles = []
+    angles.append(RElbowRoll-1.8)
+    angles.append(-1*RShoulderRoll)
+    angles.append(LElbowRoll+1.8)
+    angles.append(-1*LShoulderRoll)
+    angles.append(-0.7)
+    angles.append(0.7)
+
+    print(angles)
+    return angles
+
+cap = None
+root = tk.Tk()
+root.title('MrMime2')
+root.geometry('960x540') #SD
+root.config(bg='#C19BA6')
+root.resizable(0,0)
+
+def hpe ():
+    global my_image2, my_image_label2, points, img
+    points = pose_estimation(img)
+    img = imutils.resize(img, width= 200,height= 200)
+    image = imutils.resize(img, width= 200,height= 200)
+    im = Image.fromarray(image)
+    my_image2 = ImageTk.PhotoImage(image= im)
+    my_image_label2 = tk.Label()
+    my_image_label2.config(image= my_image2)
+    my_image_label2.place(x=380, y=200)
+    my_image_label2.image = img
+    print(points)
+    if points and flag==1:
+        angles = getAnglesFromPoints2(points)
+        Motion.wakeUp()
+        #Motion.moveInit()
+        #Motion.post.moveTo(0.5, 0, 0)
+        Speech.say("Hola a todos!!")
+        Motion.angleInterpolation(names, angles, times, True)
+        #for i in range(3):
+        #Motion.angleInterpolation(names, [-3.0, 1.2, -0.7], times, True)
+        #Motion.angleInterpolation(names, [-1.0, 1.2, -0.7], times, True)
+        Motion.rest()
+    else:
+        print ("no")
+
+def open():
+    global my_image, my_image_label, my_label, btn_hpe,img, flag
+    flag = 1
+    root.filename = filedialog.askopenfilename(title="Select a File", filetypes=[("jpg files", ".jpg"),("image", ".png")])
+    my_label = tk.Label(root, text="Ruta de la imagen: \n\n" + root.filename, fg="black", bg="white", font='Helvetica 10 bold')
+    my_label.place(x=0, y=25)
+    img=cv.imread(root.filename)
+    my_image = ImageTk.PhotoImage(Image.open(root.filename).resize((200, 200)))
+    my_image_label = tk.Label(image=my_image)
+    my_image_label.place(x=80, y=100)
+    btn_hpe = tk.Button(root, text = "Activar HPE", command = hpe, fg="black", bg="white", font="Helvetica 10 bold")
+    btn_hpe.config(height=3, width = 20)
+    btn_hpe.place(x=400, y=100)
+
+my_btn = tk.Button(root, text = "Cargar Archivo", command = open, fg="black", bg="white", font="Helvetica 10 bold")
+my_btn.config(height=3,width=20)
+my_btn.place(x= 400, y=20)
 
 ###########################################################################
-NAO_HOST = "127.0.0.1"
-NAO_PORT = 9559
 
-Motion = ALProxy("ALMotion", NAO_HOST, NAO_PORT)
-Speech = ALProxy("ALTextToSpeech", NAO_HOST, NAO_PORT)
+root.mainloop()
 
-#names = ['LElbowRoll', 'LShoulderRoll', 'LShoulderPitch']
-names = ['RElbowRoll', 'RShoulderRoll', 'LElbowRoll', 'LShoulderRoll','RElbowYaw','LElbowYaw']
-#times = [[1.0], [1.2], [1.3]]
-times = [[1.0], [1.2],[1.0], [1.2],[1.0], [1.2]]
-
-Motion.wakeUp()
-#Motion.moveInit()
-#Motion.post.moveTo(0.5, 0, 0)
-Speech.say("Hola a todos!!")
-Motion.angleInterpolation(names, angles, times, True)
-#for i in range(3):
-    #Motion.angleInterpolation(names, [-3.0, 1.2, -0.7], times, True)
-    #Motion.angleInterpolation(names, [-1.0, 1.2, -0.7], times, True)
-Motion.rest()
+###########################################################################
