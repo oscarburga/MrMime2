@@ -227,33 +227,66 @@ def retarget():
     valid_angles = [angles[x] for x in valid_idx]
     Motion.setAngles(valid_names, valid_angles, 1.0)
 
-def visualizar():
-    global cap, points, lblVideo, img, frame
+def visualizar2():
+    global cap, points, lblVideo, img, frame2, flag
+    if flag == 2:
+        lblVideo.image = ""
+        cap.release()
+        cv.destroyAllWindows()
+        lblVideo.destroy()
+        cap = cv.VideoCapture(0)
+    flag = 3
     if cap is not None:
-        ret, frame = cap.read()
+        ret, frame2 = cap.read()
         if ret == True:
-            frame = imutils.resize(frame, width=320)
-            frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+            frame2 = imutils.resize(frame2, width=320)
+            frame2 = cv.cvtColor(frame2, cv.COLOR_BGR2RGB)
+            im = Image.fromarray(frame2)
+            img = ImageTk.PhotoImage(image=im)
             lblVideo = tk.Label(root)
             lblVideo.place(x=80, y=120)
-            img3, points = pose_estimation(frame)
-            im = Image.fromarray(frame)
+            lblVideo.configure(image=img)
+            lblVideo.image = img
+            lblVideo.after(10, visualizar2)
+
+def visualizar():
+    global cap, points, lblVideo, img, frame1, flag
+    if flag == 3:
+        lblVideo.image = ""
+        cap.release()
+        cv.destroyAllWindows()
+        lblVideo.destroy()
+        cap = cv.VideoCapture(0)
+    flag = 2
+    if cap is not None:
+        ret, frame1 = cap.read()
+        if ret == True:
+            frame1 = imutils.resize(frame1, width=320)
+            frame1 = cv.cvtColor(frame1, cv.COLOR_BGR2RGB)
+            lblVideo = tk.Label(root)
+            lblVideo.place(x=80, y=120)
+            frame1, points = pose_estimation(frame1)
+            im = Image.fromarray(frame1)
             img = ImageTk.PhotoImage(image=im)
             lblVideo.configure(image=img)
             lblVideo.image = img
             lblVideo.after(10, visualizar)
-        if cv.waitKey(1)==ord('q'):
-            lblVideo.image = ""
-            cap.release()
 
 def iniciar():
-    global cap, img
+    global cap, img, btn_hpe2, btn_hpe1
     cap = cv.VideoCapture(0)
     if flag == 1:
         my_label.destroy()
         my_image_label.destroy()
+        my_image_label2.destroy()
         btn_hpe.destroy()
-    visualizar()
+
+    btn_hpe2 = tk.Button(root, text = "Activar HPE", command = visualizar, fg="black", bg="white", font="Helvetica 10 bold")
+    btn_hpe2.config(height=3, width = 20)
+    btn_hpe2.place(x=400, y=100)
+    btn_hpe1 = tk.Button(root, text = "Desactivar HPE", command = visualizar2, fg="black", bg="white", font="Helvetica 10 bold")
+    btn_hpe1.config(height=3, width = 20)
+    btn_hpe1.place(x=700, y=100)
 
 def hpe ():
     global my_image2, my_image_label2, points, img
@@ -282,7 +315,13 @@ def hpe ():
         print ("no")
 
 def open():
-    global my_image, my_image_label, my_label, btn_hpe,img, flag
+    global my_image, my_image_label, my_label, btn_hpe,img, flag, lblVideo, cap, btn_hpe1, btn_hpe2
+    if flag == 2 or flag == 3:
+        cap.release()
+        cv.destroyAllWindows()
+        lblVideo.destroy()
+        btn_hpe2.destroy()
+        btn_hpe1.destroy()
     flag = 1
     root.filename = filedialog.askopenfilename(title="Select a File", filetypes=[("jpg files", ".jpg"),("image", ".png")])
     my_label = tk.Label(root, text="Ruta de la imagen: \n\n" + root.filename, fg="black", bg="white", font='Helvetica 10 bold')
