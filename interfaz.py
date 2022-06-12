@@ -67,9 +67,4 @@ my_btn2.place(x=720, y = 20)
 lblVideo = tk.Label(root)
 lblVideo.place(x=80, y=120)
 
-points = []
-if points:
-    print(points)
-else:
-    print("no")
 root.mainloop()

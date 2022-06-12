@@ -16,6 +16,14 @@ class Vector:
     Y2 = 0
     vector = np.array([0,0])
     def __init__(self, X1, Y1, X2, Y2):
+        self.isOk = True
+        if any([True if val is None else False for val in (X1, Y1, X2, Y2)]):
+            self.isOk = False
+            self.X1 = .0
+            self.Y1 = .0
+            self.X2 = .0
+            self.Y2 = .0
+            return
         self.X1 = X1
         self.Y1 = Y1
         self.X2 = X2
@@ -98,7 +106,7 @@ def pose_estimation(frame):
     t, _ = net.getPerfProfile()
     freq = cv.getTickFrequency() / 1000
     cv.putText(frame, '%.2fms' % (t / freq), (10, 20), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
-    return points
+    return frame, points
 
 def getAnglesFromPoints(points):
     xs=[]
@@ -208,10 +216,48 @@ root.title('MrMime2')
 root.geometry('960x540') #SD
 root.config(bg='#C19BA6')
 root.resizable(0,0)
+def retarget():
+    global points, lblVideo, frame
+    processed, points = pose_estimation(frame)
+    im = Image.fromarray(frame)
+    img3 = ImageTk.PhotoImage(image=im)
+    angles = getAnglesFromPoints(points)
+    valid_idx = [i for i, v in enumerate(angles) if v is not None]
+    valid_names = [names[x] for x in valid_idx]
+    valid_angles = [angles[x] for x in valid_idx]
+    Motion.setAngles(valid_names, valid_angles, 1.0)
+
+def visualizar():
+    global cap, points, lblVideo, img, frame
+    if cap is not None:
+        ret, frame = cap.read()
+        if ret == True:
+            frame = imutils.resize(frame, width=320)
+            frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+            lblVideo = tk.Label(root)
+            lblVideo.place(x=80, y=120)
+            img3, points = pose_estimation(frame)
+            im = Image.fromarray(frame)
+            img = ImageTk.PhotoImage(image=im)
+            lblVideo.configure(image=img)
+            lblVideo.image = img
+            lblVideo.after(10, visualizar)
+        if cv.waitKey(1)==ord('q'):
+            lblVideo.image = ""
+            cap.release()
+
+def iniciar():
+    global cap, img
+    cap = cv.VideoCapture(0)
+    if flag == 1:
+        my_label.destroy()
+        my_image_label.destroy()
+        btn_hpe.destroy()
+    visualizar()
 
 def hpe ():
     global my_image2, my_image_label2, points, img
-    points = pose_estimation(img)
+    img2, points = pose_estimation(img)
     img = imutils.resize(img, width= 200,height= 200)
     image = imutils.resize(img, width= 200,height= 200)
     im = Image.fromarray(image)
@@ -252,6 +298,9 @@ def open():
 my_btn = tk.Button(root, text = "Cargar Archivo", command = open, fg="black", bg="white", font="Helvetica 10 bold")
 my_btn.config(height=3,width=20)
 my_btn.place(x= 400, y=20)
+my_btn2 = tk.Button(root, text = "Usar Camara", command = iniciar, fg="black", bg="white", font="Helvetica 10 bold")
+my_btn2.config(height=3, width=20)
+my_btn2.place(x=720, y = 20)
 
 ###########################################################################
 
