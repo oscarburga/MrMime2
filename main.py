@@ -214,8 +214,10 @@ cap = None
 root = tk.Tk()
 root.title('MrMime2')
 root.geometry('960x540') #SD
-root.config(bg='#C19BA6')
+root.config(bg='#fcacb4')
 root.resizable(0,0)
+root.iconbitmap('nao.ico')
+
 def retarget():
     global points, lblVideo, frame
     processed, points = pose_estimation(frame)
@@ -244,7 +246,7 @@ def visualizar2():
             im = Image.fromarray(frame2)
             img = ImageTk.PhotoImage(image=im)
             lblVideo = tk.Label(root)
-            lblVideo.place(x=80, y=120)
+            lblVideo.place(x=40, y=120)
             lblVideo.configure(image=img)
             lblVideo.image = img
             lblVideo.after(10, visualizar2)
@@ -264,7 +266,7 @@ def visualizar():
             frame1 = imutils.resize(frame1, width=320)
             frame1 = cv.cvtColor(frame1, cv.COLOR_BGR2RGB)
             lblVideo = tk.Label(root)
-            lblVideo.place(x=80, y=120)
+            lblVideo.place(x=40, y=120)
             frame1, points = pose_estimation(frame1)
             im = Image.fromarray(frame1)
             img = ImageTk.PhotoImage(image=im)
@@ -281,12 +283,12 @@ def iniciar():
         my_image_label2.destroy()
         btn_hpe.destroy()
 
-    btn_hpe2 = tk.Button(root, text = "Activar HPE", command = visualizar, fg="black", bg="white", font="Helvetica 10 bold")
+    btn_hpe2 = tk.Button(root, text = "Activar HPE", command = visualizar, fg="#ccccd4", bg="#144c74", font="Helvetica 10 bold")
     btn_hpe2.config(height=3, width = 20)
     btn_hpe2.place(x=400, y=100)
-    btn_hpe1 = tk.Button(root, text = "Desactivar HPE", command = visualizar2, fg="black", bg="white", font="Helvetica 10 bold")
+    btn_hpe1 = tk.Button(root, text = "Desactivar HPE", command = visualizar2, fg="#ccccd4", bg="#144c74", font="Helvetica 10 bold")
     btn_hpe1.config(height=3, width = 20)
-    btn_hpe1.place(x=700, y=100)
+    btn_hpe1.place(x=720, y=100)
 
 def hpe ():
     global my_image2, my_image_label2, points, img
@@ -324,20 +326,24 @@ def open():
         btn_hpe1.destroy()
     flag = 1
     root.filename = filedialog.askopenfilename(title="Select a File", filetypes=[("jpg files", ".jpg"),("image", ".png")])
-    my_label = tk.Label(root, text="Ruta de la imagen: \n\n" + root.filename, fg="black", bg="white", font='Helvetica 10 bold')
+    my_label = tk.Label(root, text="Ruta de la imagen: \n\n" + root.filename, fg="#ccccd4", bg="#144c74", font='Helvetica 10 bold')
     my_label.place(x=0, y=25)
     img=cv.imread(root.filename)
     my_image = ImageTk.PhotoImage(Image.open(root.filename).resize((200, 200)))
     my_image_label = tk.Label(image=my_image)
     my_image_label.place(x=80, y=100)
-    btn_hpe = tk.Button(root, text = "Activar HPE", command = hpe, fg="black", bg="white", font="Helvetica 10 bold")
+    btn_hpe = tk.Button(root, text = "Activar HPE", command = hpe, fg="#ccccd4", bg="#144c74", font="Helvetica 10 bold")
     btn_hpe.config(height=3, width = 20)
     btn_hpe.place(x=400, y=100)
 
-my_btn = tk.Button(root, text = "Cargar Archivo", command = open, fg="black", bg="white", font="Helvetica 10 bold")
+bg = ImageTk.PhotoImage(file ="mrmime.png")
+
+my_label = tk.Label(root, image=bg)
+my_label.place(x=0, y=0, relwidth=1, relheight=1)
+my_btn = tk.Button(root, text = "Cargar Archivo", command = open, fg="#ccccd4", bg="#144c74", font="Helvetica 10 bold")
 my_btn.config(height=3,width=20)
 my_btn.place(x= 400, y=20)
-my_btn2 = tk.Button(root, text = "Usar Camara", command = iniciar, fg="black", bg="white", font="Helvetica 10 bold")
+my_btn2 = tk.Button(root, text = "Usar Camara", command = iniciar, fg="#ccccd4", bg="#144c74", font="Helvetica 10 bold")
 my_btn2.config(height=3, width=20)
 my_btn2.place(x=720, y = 20)
 

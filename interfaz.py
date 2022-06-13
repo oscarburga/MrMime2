@@ -11,7 +11,7 @@ root.title('MrMime2')
 root.geometry('960x540') #SD
 root.config(bg='#C19BA6')
 root.resizable(0,0)
-#root.iconbitmap('image.jpg')
+root.iconbitmap('nao.ico')
 
 def visualizar():
     global cap
