@@ -1,5 +1,4 @@
 from matplotlib import image
-from naoqi import ALProxy
 import matplotlib.pyplot as plt
 import numpy as np
 import math
@@ -45,8 +44,6 @@ net=cv.dnn.readNetFromTensorflow("graph_opt.pb")## weigths
 
 NAO_HOST = "127.0.0.1"
 NAO_PORT = 9559
-Motion = ALProxy("ALMotion", NAO_HOST, NAO_PORT)
-Speech = ALProxy("ALTextToSpeech", NAO_HOST, NAO_PORT)
 #names = ['LElbowRoll', 'LShoulderRoll', 'LShoulderPitch']
 names = ['RElbowRoll', 'RShoulderRoll', 'LElbowRoll', 'LShoulderRoll','RElbowYaw','LElbowYaw']
 #times = [[1.0], [1.2], [1.3]]
@@ -65,6 +62,7 @@ BODY_PARTS = { "Nose": 0, "Neck": 1, "RShoulder": 2, "RElbow": 3, "RWrist": 4,
 POSE_PAIRS = [ ["Neck", "RShoulder"], ["Neck", "LShoulder"], ["RShoulder", "RElbow"],
                 ["RElbow", "RWrist"], ["LShoulder", "LElbow"], ["LElbow", "LWrist"],
                 ["Neck", "RHip"], ["Neck", "LHip"] ]
+
 
 def pose_estimation(frame):
     frameWidth = frame.shape[1]
@@ -227,10 +225,24 @@ def retarget():
     valid_idx = [i for i, v in enumerate(angles) if v is not None]
     valid_names = [names[x] for x in valid_idx]
     valid_angles = [angles[x] for x in valid_idx]
-    Motion.setAngles(valid_names, valid_angles, 1.0)
+
+def clearImage():
+    global my_image_label, my_image_label2
+    
+    my_image_label.forget()
+    my_image_label.destroy()
+    my_image_label2.forget()
+    my_image_label2.destroy()
+
+def clearVideo():
+    print("HOLAAA")
+    global lblVideo,cap
+    cap.release()
+    lblVideo.forget()
+    lblVideo.destroy()
 
 def visualizar2():
-    global cap, points, lblVideo, img, frame2, flag
+    global cap, points, lblVideo, img, frame2, flag, my_image_label
     if flag == 2:
         lblVideo.image = ""
         cap.release()
@@ -239,6 +251,7 @@ def visualizar2():
         cap = cv.VideoCapture(0)
     flag = 3
     if cap is not None:
+        print("AA")
         ret, frame2 = cap.read()
         if ret == True:
             frame2 = imutils.resize(frame2, width=320)
@@ -252,7 +265,7 @@ def visualizar2():
             lblVideo.after(10, visualizar2)
 
 def visualizar():
-    global cap, points, lblVideo, img, frame1, flag
+    global cap, points, lblVideo, img, frame1, flag, my_image_label,my_image
     if flag == 3:
         lblVideo.image = ""
         cap.release()
@@ -261,6 +274,7 @@ def visualizar():
         cap = cv.VideoCapture(0)
     flag = 2
     if cap is not None:
+        print("HAA")
         ret, frame1 = cap.read()
         if ret == True:
             frame1 = imutils.resize(frame1, width=320)
@@ -282,7 +296,10 @@ def iniciar():
         my_image_label.destroy()
         my_image_label2.destroy()
         btn_hpe.destroy()
-
+        clearImage()
+    if flag == 2 or flag == 3:
+        clearVideo()
+    #visualizar()
     btn_hpe2 = tk.Button(root, text = "Activar HPE", command = visualizar, fg="#ccccd4", bg="#144c74", font="Helvetica 10 bold")
     btn_hpe2.config(height=3, width = 20)
     btn_hpe2.place(x=400, y=100)
@@ -304,37 +321,43 @@ def hpe ():
     print(points)
     if points and flag==1:
         angles = getAnglesFromPoints2(points)
-        Motion.wakeUp()
-        #Motion.moveInit()
-        #Motion.post.moveTo(0.5, 0, 0)
-        Speech.say("Hola a todos!!")
-        Motion.angleInterpolation(names, angles, times, True)
-        #for i in range(3):
-        #Motion.angleInterpolation(names, [-3.0, 1.2, -0.7], times, True)
-        #Motion.angleInterpolation(names, [-1.0, 1.2, -0.7], times, True)
-        Motion.rest()
     else:
         print ("no")
 
 def open():
     global my_image, my_image_label, my_label, btn_hpe,img, flag, lblVideo, cap, btn_hpe1, btn_hpe2
+    print(flag)
     if flag == 2 or flag == 3:
+        clearVideo()
         cap.release()
         cv.destroyAllWindows()
         lblVideo.destroy()
-        btn_hpe2.destroy()
-        btn_hpe1.destroy()
+        btn_hpe.destroy()
+    if flag == 1:
+        clearImage()
+    root.filename = filedialog.askopenfilename(title="Select a File", filetypes=[("jpg files", ".jpg"),("image", ".png"),("all video format", ".mp4")])
+    if len(root.filename) == 0:
+        return
+
     flag = 1
-    root.filename = filedialog.askopenfilename(title="Select a File", filetypes=[("jpg files", ".jpg"),("image", ".png")])
     my_label = tk.Label(root, text="Ruta de la imagen: \n\n" + root.filename, fg="#ccccd4", bg="#144c74", font='Helvetica 10 bold')
     my_label.place(x=0, y=25)
-    img=cv.imread(root.filename)
-    my_image = ImageTk.PhotoImage(Image.open(root.filename).resize((200, 200)))
-    my_image_label = tk.Label(image=my_image)
-    my_image_label.place(x=80, y=100)
-    btn_hpe = tk.Button(root, text = "Activar HPE", command = hpe, fg="#ccccd4", bg="#144c74", font="Helvetica 10 bold")
-    btn_hpe.config(height=3, width = 20)
-    btn_hpe.place(x=400, y=100)
+
+    print(root.filename)
+    if root.filename[-4:] == '.mp4' :
+        cap = cv.VideoCapture(root.filename)
+        btn_hpe = tk.Button(root, text = "Activar HPE", command = visualizar, fg="#ccccd4", bg="#144c74", font="Helvetica 10 bold")
+        btn_hpe.config(height=3, width = 20)
+        btn_hpe.place(x=400, y=100)
+        flag = 2
+    else:
+        img=cv.imread(root.filename)
+        my_image = ImageTk.PhotoImage(Image.open(root.filename).resize((200, 200)))
+        my_image_label = tk.Label(image=my_image)
+        my_image_label.place(x=80, y=100)
+        btn_hpe = tk.Button(root, text = "Activar HPE", command = hpe, fg="#ccccd4", bg="#144c74", font="Helvetica 10 bold")
+        btn_hpe.config(height=3, width = 20)
+        btn_hpe.place(x=400, y=100)
 
 bg = ImageTk.PhotoImage(file ="mrmime.png")
 
