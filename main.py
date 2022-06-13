@@ -216,6 +216,12 @@ root.config(bg='#fcacb4')
 root.resizable(0,0)
 root.iconbitmap('nao.ico')
 
+global my_image, my_image_label, my_image_label2, my_label, btn_hpe,img, lblVideo, btn_hpe1, btn_hpe2
+my_image, my_image_label, my_image_label2, my_label, btn_hpe,img, lblVideo, btn_hpe1, btn_hpe2 = [tk.Label(root)] * 9
+
+global videofile
+videofile = None
+
 def retarget():
     global points, lblVideo, frame
     processed, points = pose_estimation(frame)
@@ -242,13 +248,15 @@ def clearVideo():
     lblVideo.destroy()
 
 def visualizar2():
-    global cap, points, lblVideo, img, frame2, flag, my_image_label
-    if flag == 2:
+    global cap, points, lblVideo, img, frame2, flag, my_image_label, videofile
+    if flag != 3:
         lblVideo.image = ""
         cap.release()
         cv.destroyAllWindows()
+        lblVideo.forget()
         lblVideo.destroy()
-        cap = cv.VideoCapture(0)
+        print("vis2:", videofile)
+        cap = cv.VideoCapture(videofile if videofile else 0)
     flag = 3
     if cap is not None:
         print("AA")
@@ -258,6 +266,7 @@ def visualizar2():
             frame2 = cv.cvtColor(frame2, cv.COLOR_BGR2RGB)
             im = Image.fromarray(frame2)
             img = ImageTk.PhotoImage(image=im)
+            lblVideo.destroy()
             lblVideo = tk.Label(root)
             lblVideo.place(x=40, y=120)
             lblVideo.configure(image=img)
@@ -265,20 +274,23 @@ def visualizar2():
             lblVideo.after(10, visualizar2)
 
 def visualizar():
-    global cap, points, lblVideo, img, frame1, flag, my_image_label,my_image
-    if flag == 3:
+    global cap, points, lblVideo, img, frame1, flag, my_image_label,my_image, videofile
+    if flag != 2:
         lblVideo.image = ""
         cap.release()
         cv.destroyAllWindows()
         lblVideo.destroy()
-        cap = cv.VideoCapture(0)
+        print("vis1:", videofile)
+        cap = cv.VideoCapture(videofile if videofile else 0)
     flag = 2
     if cap is not None:
         print("HAA")
         ret, frame1 = cap.read()
         if ret == True:
+            print("--HAA")
             frame1 = imutils.resize(frame1, width=320)
             frame1 = cv.cvtColor(frame1, cv.COLOR_BGR2RGB)
+            lblVideo.destroy()
             lblVideo = tk.Label(root)
             lblVideo.place(x=40, y=120)
             frame1, points = pose_estimation(frame1)
@@ -289,7 +301,7 @@ def visualizar():
             lblVideo.after(10, visualizar)
 
 def iniciar():
-    global cap, img, btn_hpe2, btn_hpe1
+    global cap, img, btn_hpe2, btn_hpe1, videofile
     cap = cv.VideoCapture(0)
     if flag == 1:
         my_label.destroy()
@@ -297,9 +309,12 @@ def iniciar():
         my_image_label2.destroy()
         btn_hpe.destroy()
         clearImage()
+        videofile = None
     if flag == 2 or flag == 3:
         clearVideo()
+        videofile = None
     #visualizar()
+    videofile = None
     btn_hpe2 = tk.Button(root, text = "Activar HPE", command = visualizar, fg="#ccccd4", bg="#144c74", font="Helvetica 10 bold")
     btn_hpe2.config(height=3, width = 20)
     btn_hpe2.place(x=400, y=100)
@@ -325,16 +340,23 @@ def hpe ():
         print ("no")
 
 def open():
-    global my_image, my_image_label, my_label, btn_hpe,img, flag, lblVideo, cap, btn_hpe1, btn_hpe2
+    global my_image, my_image_label, my_label, btn_hpe,img, flag, lblVideo, cap, btn_hpe1, btn_hpe2, videofile
     print(flag)
     if flag == 2 or flag == 3:
+        clearImage()
         clearVideo()
         cap.release()
         cv.destroyAllWindows()
+        lblVideo.forget()
         lblVideo.destroy()
         btn_hpe.destroy()
+        btn_hpe1.destroy()
+        btn_hpe2.destroy()
     if flag == 1:
         clearImage()
+        clearVideo()
+        btn_hpe1.destroy()
+        btn_hpe2.destroy()
     root.filename = filedialog.askopenfilename(title="Select a File", filetypes=[("jpg files", ".jpg"),("image", ".png"),("all video format", ".mp4")])
     if len(root.filename) == 0:
         return
@@ -345,12 +367,17 @@ def open():
 
     print(root.filename)
     if root.filename[-4:] == '.mp4' :
+        videofile = root.filename
         cap = cv.VideoCapture(root.filename)
-        btn_hpe = tk.Button(root, text = "Activar HPE", command = visualizar, fg="#ccccd4", bg="#144c74", font="Helvetica 10 bold")
-        btn_hpe.config(height=3, width = 20)
-        btn_hpe.place(x=400, y=100)
+        btn_hpe2 = tk.Button(root, text = "Activar HPE", command = visualizar, fg="#ccccd4", bg="#144c74", font="Helvetica 10 bold")
+        btn_hpe2.config(height=3, width = 20)
+        btn_hpe2.place(x=400, y=100)
+        btn_hpe1 = tk.Button(root, text = "Desactivar HPE", command = visualizar2, fg="#ccccd4", bg="#144c74", font="Helvetica 10 bold")
+        btn_hpe1.config(height=3, width = 20)
+        btn_hpe1.place(x=720, y=100)
         flag = 2
     else:
+        videofile = None
         img=cv.imread(root.filename)
         my_image = ImageTk.PhotoImage(Image.open(root.filename).resize((200, 200)))
         my_image_label = tk.Label(image=my_image)
