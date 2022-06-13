@@ -252,7 +252,8 @@ def visualizar2():
     global cap, points, lblVideo, img, frame2, flag, my_image_label, videofile
     if flag != 3:
         lblVideo.image = ""
-        cap.release()
+        if cap:
+            cap.release()
         cv.destroyAllWindows()
         lblVideo.forget()
         lblVideo.destroy()
@@ -278,7 +279,8 @@ def visualizar():
     global cap, points, lblVideo, img, frame1, flag, my_image_label,my_image, videofile
     if flag != 2:
         lblVideo.image = ""
-        cap.release()
+        if cap:
+            cap.release()
         cv.destroyAllWindows()
         lblVideo.destroy()
         print("vis1:", videofile)
@@ -342,7 +344,8 @@ def open():
     if flag == 2 or flag == 3:
         clearImage()
         clearVideo()
-        cap.release()
+        if cap:
+            cap.release()
         cv.destroyAllWindows()
         lblVideo.forget()
         lblVideo.destroy()
