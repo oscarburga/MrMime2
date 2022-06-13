@@ -313,7 +313,6 @@ def iniciar():
     if flag == 2 or flag == 3:
         clearVideo()
         videofile = None
-    #visualizar()
     videofile = None
     btn_hpe2 = tk.Button(root, text = "Activar HPE", command = visualizar, fg="#ccccd4", bg="#144c74", font="Helvetica 10 bold")
     btn_hpe2.config(height=3, width = 20)
@@ -321,6 +320,7 @@ def iniciar():
     btn_hpe1 = tk.Button(root, text = "Desactivar HPE", command = visualizar2, fg="#ccccd4", bg="#144c74", font="Helvetica 10 bold")
     btn_hpe1.config(height=3, width = 20)
     btn_hpe1.place(x=720, y=100)
+    visualizar2()
 
 def hpe ():
     global my_image2, my_image_label2, points, img
@@ -376,6 +376,7 @@ def open():
         btn_hpe1.config(height=3, width = 20)
         btn_hpe1.place(x=720, y=100)
         flag = 2
+        visualizar2()
     else:
         videofile = None
         img=cv.imread(root.filename)
