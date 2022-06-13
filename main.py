@@ -243,7 +243,8 @@ def clearImage():
 def clearVideo():
     print("HOLAAA")
     global lblVideo,cap
-    cap.release()
+    if cap:
+        cap.release()
     lblVideo.forget()
     lblVideo.destroy()
 
@@ -329,15 +330,11 @@ def hpe ():
     image = imutils.resize(img, width= 200,height= 200)
     im = Image.fromarray(image)
     my_image2 = ImageTk.PhotoImage(image= im)
+    my_image_label2.destroy()
     my_image_label2 = tk.Label()
     my_image_label2.config(image= my_image2)
     my_image_label2.place(x=380, y=200)
     my_image_label2.image = img
-    print(points)
-    if points and flag==1:
-        angles = getAnglesFromPoints2(points)
-    else:
-        print ("no")
 
 def open():
     global my_image, my_image_label, my_label, btn_hpe,img, flag, lblVideo, cap, btn_hpe1, btn_hpe2, videofile
