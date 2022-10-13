@@ -59,6 +59,17 @@ class Vec3:
         assert isinstance(normal, Vec3)
         return self - self.project_onto_vector(normal)
 
+    def rotate_around_vector(self, other, angle):
+        assert isinstance(other, Vec3)
+        a_parallel_b = self.project_onto_vector(other)
+        a_ortho_b = self - a_parallel_b
+        w = other % a_ortho_b
+        a_ortho_b_size = a_ortho_b.size()
+        x1 = np.cos(angle) / a_ortho_b_size
+        x2 = np.sin(angle) / w.size()
+        rot_a_ortho_b = ((a_ortho_b * x1) + (w * x2)) * a_ortho_b_size
+        return a_parallel_b + rot_a_ortho_b
+
     def get_normal(self):
         return Vec3(*(self.coords / self.size()))
 
@@ -76,13 +87,11 @@ class Vec3:
 
 
 if __name__ == '__main__':
-    print(Vec3.angle(Vec3(1.0), Vec3(-1.0, -1.0)))
-    print(Vec3.signed_angle(Vec3(1.0), Vec3(-1.0, 0.0), Vec3(z=1.0)))
-    v1 = Vec3()
-    v1 += Vec3(1.0, 2.0, 3.0)
-    v2 = Vec3()
-    v2 -= Vec3(2.0, 0.0, 2.0)
-    print(v1)
-    print(-v1)
-    print(v2)
+    around = -Vec3(0.0, 1.0, 0.0)
+    to_rot = Vec3(1.0, 0.0, 0.0)
 
+    import math
+    print(to_rot.rotate_around_vector(around, math.pi))
+    print(to_rot.rotate_around_vector(around, math.pi / 2.0))
+    print(to_rot.rotate_around_vector(around, -math.pi / 2.0))
+    print(to_rot.rotate_around_vector(around, -math.pi))

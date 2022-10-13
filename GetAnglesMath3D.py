@@ -1,3 +1,5 @@
+import numpy as np
+
 from Vec3D import Vec3
 import math
 
@@ -5,10 +7,28 @@ from AsyncWorkerBase import log_safe
 
 pi_half = math.pi * 0.5
 
+
 # RShoulder, RElbow, RWrist, LShoulder, LElbow, LWrist, RHip, LHip
 mppose_idxes = [12, 14, 16, 11, 13, 15, 24, 23]
-names = ['RElbowRoll', 'RShoulderRoll', 'LElbowRoll', 'LShoulderRoll','RElbowYaw','LElbowYaw']
+
+names = ['HeadPitch',
+         'HeadYaw',
+         'RElbowRoll',
+         'RShoulderRoll',
+         'LElbowRoll',
+         'LShoulderRoll',
+         'RElbowYaw',
+         'LElbowYaw'
+         ]
+
 idx_of = {
+    'Nose': 0,
+    'LEye': 2,
+    'LEar': 7,
+    'REye': 5,
+    'REar': 8,
+    'LMouth': 9,
+    'RMouth': 10,
     'RShoulder': 12,
     'RElbow': 14,
     'RWrist': 16,
@@ -20,6 +40,9 @@ idx_of = {
 }
 
 bounds_of = {
+    'HeadYaw': (-2.0857, 2.0857),
+    'HeadPitch': (-0.6720, 0.5149),
+
     'RShoulderPitch': (-2.0857, 2.0857),
     'RShoulderRoll': (-1.3265, 0.3142),
     'RElbowYaw': (-2.0857, 2.0857),
@@ -32,6 +55,95 @@ bounds_of = {
     'LElbowRoll': (-1.5446, -0.0349),
     'LWristYaw': (-1.8238, 1.8238)
 }
+
+
+def get_head_angles(get_as_vec, torso_front, torso_up) -> (float, float):
+    """
+
+    Args:
+        get_as_vec: get_as_vec function to obtain face landmark coordinates
+        torso_front: torso front vector
+        torso_up: torso up vector
+
+    Returns:
+        Estimation of head (yaw, pitch) angles
+
+    """
+    nose = get_as_vec('Nose')
+
+    l_ear = get_as_vec('LEar')
+    r_ear = get_as_vec('REar')
+
+    l_eye = get_as_vec('LEye')
+    r_eye = get_as_vec('REye')
+
+    l_mouth = get_as_vec('LMouth')
+    r_mouth = get_as_vec('RMouth')
+
+    # Get eyes and nose normal
+    l_unit = (l_eye - nose).get_normal()
+    r_unit = (r_eye - nose).get_normal()
+    eyes_normal = (l_unit % r_unit).get_normal()
+
+    # Get nose and mouth normal
+    l_unit = (l_mouth - nose).get_normal()
+    r_unit = (r_mouth - nose).get_normal()
+    mouth_normal = (l_unit % r_unit).get_normal()
+
+    # Get face front vector
+    face_front = ((eyes_normal + mouth_normal) * 0.5).get_normal()
+
+    # Get face right vector
+    face_right = (r_ear - l_ear).get_normal()
+    face_right += (r_mouth - l_mouth).get_normal()
+    face_right += (r_eye - l_eye).get_normal()
+    face_right = (face_right / 3).get_normal()
+
+    face_front_side_proj = face_front.project_onto_plane(face_right).get_normal()
+    torso_front_side_proj = torso_front.project_onto_plane(face_right).get_normal()
+
+    # negative on face right to use face_left instead.
+    pitch = Vec3.signed_angle(torso_front_side_proj, face_front_side_proj, -face_right)
+
+    # for yaw, get angle of face front with torso front
+    torso_front_proj = torso_front.project_onto_plane(torso_up)
+    face_front_proj = face_front.project_onto_plane(torso_up)
+    yaw = Vec3.signed_angle(torso_front_proj, face_front_proj, torso_up)
+
+    # print(f'Pitch = {pitch}')
+    return pitch, yaw
+
+
+def get_arm_angles(get_as_vec, front_vector, right_vector):
+    shoulder = get_as_vec('RShoulder')
+    elbow = get_as_vec('RElbow')
+    wrist = get_as_vec('RWrist')
+
+    min_sp, max_sp = bounds_of['RShoulderPitch']
+    angle_candidates = np.arange(min_sp, max_sp, (max_sp - min_sp) / 80)
+
+    best_angle_set = {}
+    min_total_dist_squared = math.inf
+    print('-shoulder loop-')
+    for shoulder_pitch in angle_candidates:
+        rot_by_pitch = front_vector.rotate_around_vector(right_vector, shoulder_pitch)
+        arm_plane_normal = right_vector % rot_by_pitch.get_normal()
+        arm_plane_normal = arm_plane_normal.get_normal()
+
+        shoulder_to_elbow = elbow - shoulder
+        arm_vec_proj = shoulder_to_elbow.project_onto_plane(arm_plane_normal)
+        shoulder_roll = Vec3.signed_angle(rot_by_pitch, arm_vec_proj, arm_plane_normal)
+
+        rot_by_both = rot_by_pitch.rotate_around_vector(arm_plane_normal, shoulder_roll)
+        rot_by_both *= shoulder_to_elbow.size()
+
+        shoulder_dist_sq = (rot_by_both - shoulder_to_elbow).size2()
+        if shoulder_dist_sq < min_total_dist_squared:
+            min_total_dist_squared = shoulder_dist_sq
+            best_angle_set = {'pitch': shoulder_pitch, 'roll': shoulder_roll}
+            print('new min: ', min_total_dist_squared, best_angle_set)
+
+    return best_angle_set['pitch'], best_angle_set['roll']
 
 
 def get_shoulder_angles(front_vector, arm_vec, side_axis_ref) -> (float, float):
@@ -47,15 +159,17 @@ def get_shoulder_angles(front_vector, arm_vec, side_axis_ref) -> (float, float):
     # shoulder roll: project onto torso plane and get angle.
     # Angle is measured starting from the side_axis_ref. This way we do
     # not depend on torso_down for the angle
-    arm_tp = arm_vec.project_onto_plane(front_vector).get_normal()
-    shoulder_roll = Vec3.signed_angle(side_axis_ref, arm_tp, front_vector)
+    # arm_tp = arm_vec.project_onto_plane(front_vector).get_normal()
+    # shoulder_roll = Vec3.signed_angle(side_axis_ref, arm_tp, front_vector)
 
     # shoulder pitch: project onto the side plane and get angle with torso
     arm_sp = arm_vec.project_onto_plane(side_axis_ref).get_normal()
     front_sp = front_vector.project_onto_plane(side_axis_ref).get_normal()
-    # torso_down_sp = torso_down.project_onto_plane(side_axis_ref).get_normal()
-    # shoulder_pitch = -Vec3.signed_angle(torso_down_sp, arm_sp, side_axis_ref)
     shoulder_pitch = Vec3.signed_angle(-front_sp, arm_sp, -side_axis_ref)
+
+    arm_plane_normal = -(side_axis_ref % arm_sp).get_normal()
+    arm_projected = arm_vec.get_normal().project_onto_plane(arm_plane_normal).get_normal()
+    shoulder_roll = Vec3.signed_angle(side_axis_ref, arm_projected, arm_plane_normal)
 
     return shoulder_roll, shoulder_pitch
 
@@ -121,7 +235,7 @@ def get_angles_math_3d(landmark_tuples):
     right_vector = (r_shoulder - l_shoulder).get_normal()
 
     # Get up vector as the cross of front and right
-    up_vector = (front_vector % right_vector).get_normal()
+    up_vector = (right_vector % front_vector).get_normal()
 
     # Correct the right vector
     # right_vector = front_vector % up_vector
@@ -134,7 +248,8 @@ def get_angles_math_3d(landmark_tuples):
                                                             l_arm,
                                                             left_axis_arm_ref)
 
-    l_shoulder_roll = pi_half - l_shoulder_roll
+    # l_shoulder_roll = pi_half - l_shoulder_roll
+    l_shoulder_roll += pi_half
     l_shoulder_pitch *= -1.0
 
     # Get right shoulder angles
@@ -159,29 +274,27 @@ def get_angles_math_3d(landmark_tuples):
     r_elbow_roll, r_elbow_yaw = get_elbow_angles(r_shoulder,
                                                  r_elbow,
                                                  r_wrist)
+
+    # head angles
+    head_pitch, head_yaw = get_head_angles(get_as_vec, front_vector, up_vector)
+
+    # r shoulder test angles
+    # r_shoulder_pitch, r_shoulder_roll = get_arm_angles(get_as_vec, front_vector, right_vector)
+
     out_dic = {
+        # 'HeadPitch': head_pitch
+        'HeadYaw': head_yaw,
         'RShoulderRoll': r_shoulder_roll,
-        # 'RShoulderPitch': r_shoulder_pitch,
-        'RElbowYaw': r_elbow_yaw,
-        'RElbowRoll': r_elbow_roll,
+        'RShoulderPitch': r_shoulder_pitch,
+        # 'RElbowYaw': r_elbow_yaw,
+        # 'RElbowRoll': r_elbow_roll,
         'LShoulderRoll': l_shoulder_roll,
-        # 'LShoulderPitch': l_shoulder_pitch,
-        'LElbowYaw': l_elbow_yaw,
-        'LElbowRoll': l_elbow_roll
+        'LShoulderPitch': l_shoulder_pitch
+        # 'LElbowYaw': l_elbow_yaw,
+        # 'LElbowRoll': l_elbow_roll
     }
+
     for name, angle in out_dic.items():
         out_dic[name] = clamp_angle(name, angle)
 
     return out_dic
-
-# old calculation for left shoulder angles
-'''
-    ## left shoulder roll
-    l_arm_tp = l_arm.project_onto_plane(front_vector)
-    l_shoulder_roll = pi_half - Vec3.signed_angle(left_axis_arm_ref, l_arm_tp)
-
-    ## left shoulder pitch
-    l_arm_sp = l_arm.project_onto_plane(left_axis_arm_ref)
-    l_torso_down_sp = l_torso_down.project_onto_plane(left_axis_arm_ref)
-    l_shoulder_pitch = -Vec3.signed_angle(l_torso_down_sp, l_arm_sp)
-'''

@@ -146,7 +146,7 @@ class GUI(QMainWindow):
                                          nao_host=host,
                                          nao_port=port,
                                          connection_status_slot=self.on_connection_status_updated,
-                                         poseProcessorClass=BaseMpPoseProcessor)
+                                         poseProcessorClass=MpPoseProcessorMath3D)
                 self.connection_text.setText(CONN_TEXTS[CONN_STATUS_WIP])
             except Exception as e:
                 log_safe(f'Failed to create NAO Proxy: {e}')
