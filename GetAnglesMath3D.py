@@ -174,7 +174,7 @@ def get_shoulder_angles(front_vector, arm_vec, side_axis_ref) -> (float, float):
     return shoulder_roll, shoulder_pitch
 
 
-def get_elbow_angles(shoulder, elbow, wrist) -> (float, float):
+def get_elbow_angles(shoulder, elbow, wrist, side_axis_ref) -> (float, float):
     """
     Estimates elbow roll and yaw. TODO: Actually calculate elbow yaw
     Args:
@@ -186,11 +186,16 @@ def get_elbow_angles(shoulder, elbow, wrist) -> (float, float):
     """
     elbow_to_shoulder = (shoulder - elbow).get_normal()
     elbow_to_wrist = (wrist - elbow).get_normal()
-    cross = (elbow_to_wrist % elbow_to_shoulder).get_normal()
-    elbow_roll = Vec3.signed_angle(elbow_to_wrist, elbow_to_shoulder, cross)
+    elbow_plane_normal = (elbow_to_wrist % elbow_to_shoulder).get_normal()
+
+    elbow_roll = Vec3.signed_angle(elbow_to_wrist, elbow_to_shoulder, elbow_plane_normal)
     # since elbow roll is measured from a straight-arm position, take it as 180 - angle
     elbow_roll = math.pi - elbow_roll
-    return elbow_roll, 0
+
+    arm_plane_normal = (side_axis_ref % -elbow_to_shoulder).get_normal()
+    elbow_yaw = Vec3.angle(elbow_plane_normal, arm_plane_normal)
+
+    return elbow_roll, elbow_yaw
 
 
 def get_angles_math_3d(landmark_tuples):
@@ -266,32 +271,34 @@ def get_angles_math_3d(landmark_tuples):
     # left elbow angle
     l_elbow_roll, l_elbow_yaw = get_elbow_angles(l_shoulder,
                                                  l_elbow,
-                                                 l_wrist)
+                                                 l_wrist,
+                                                 right_vector)
     # multiply by minus 1 to adjust for NAO asymmetric angle axes...
     l_elbow_roll *= -1.0
+    l_elbow_yaw -= math.pi
 
     #right elbow angle
     r_elbow_roll, r_elbow_yaw = get_elbow_angles(r_shoulder,
                                                  r_elbow,
-                                                 r_wrist)
+                                                 r_wrist,
+                                                 right_vector)
+    # r_elbow_yaw
+
 
     # head angles
     head_pitch, head_yaw = get_head_angles(get_as_vec, front_vector, up_vector)
 
-    # r shoulder test angles
-    # r_shoulder_pitch, r_shoulder_roll = get_arm_angles(get_as_vec, front_vector, right_vector)
-
     out_dic = {
-        # 'HeadPitch': head_pitch
-        'HeadYaw': head_yaw,
+        # 'HeadPitch': head_pitch,
+        # 'HeadYaw': head_yaw,
         'RShoulderRoll': r_shoulder_roll,
         'RShoulderPitch': r_shoulder_pitch,
-        # 'RElbowYaw': r_elbow_yaw,
-        # 'RElbowRoll': r_elbow_roll,
+        'RElbowYaw': r_elbow_yaw,
+        'RElbowRoll': r_elbow_roll,
         'LShoulderRoll': l_shoulder_roll,
-        'LShoulderPitch': l_shoulder_pitch
-        # 'LElbowYaw': l_elbow_yaw,
-        # 'LElbowRoll': l_elbow_roll
+        'LShoulderPitch': l_shoulder_pitch,
+        'LElbowYaw': l_elbow_yaw,
+        'LElbowRoll': l_elbow_roll
     }
 
     for name, angle in out_dic.items():
