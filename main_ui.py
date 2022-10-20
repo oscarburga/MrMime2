@@ -185,6 +185,7 @@ class GUI(QMainWindow):
         self.hpeOn = True
         self.update_hpe()
         self.mediaThread = QThread()
+        self.mediaThread.Priority = QThread.Priority.TimeCriticalPriority
         self.hpeWorker = worker_class(path=path)
         self.hpeWorker.setup_on_thread(self.mediaThread)
         self.hpeWorker.ImageUpdate.connect(self.image_update_slot)

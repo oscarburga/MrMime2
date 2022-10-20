@@ -45,14 +45,14 @@ def detectPose(image, pose, display = True, verbose = False):
     # Inicializamos la lista donde almacenaremos los puntos de referencia
     landmarks = []
     
-    if results.pose_landmarks:
+    if results.pose_world_landmarks:
     
         # Dibuja los puntos de referencia de la pose en la imagen de salida.
         mp_drawing.draw_landmarks(image=output_image, landmark_list=results.pose_landmarks,
                                   connections=mp_pose.POSE_CONNECTIONS)
         
         # Iteramos por todos los puntos de referencia detectados
-        for landmark in results.pose_landmarks.landmark:
+        for landmark in results.pose_world_landmarks.landmark:
     
             # Añadimos los puntos de referencia a la lista
             landmarks.append((int(landmark.x * width), int(landmark.y * height),

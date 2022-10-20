@@ -23,9 +23,9 @@ names = ['HeadPitch',
 
 idx_of = {
     'Nose': 0,
-    'LEye': 2,
+    'LEye': 3,
     'LEar': 7,
-    'REye': 5,
+    'REye': 6,
     'REar': 8,
     'LMouth': 9,
     'RMouth': 10,
@@ -83,7 +83,7 @@ def get_head_angles(get_as_vec, torso_front, torso_up) -> (float, float):
     # Get eyes and nose normal
     l_unit = (l_eye - nose).get_normal()
     r_unit = (r_eye - nose).get_normal()
-    eyes_normal = (l_unit % r_unit).get_normal()
+    eyes_normal = (r_unit % l_unit).get_normal()
 
     # Get nose and mouth normal
     l_unit = (l_mouth - nose).get_normal()
@@ -101,6 +101,15 @@ def get_head_angles(get_as_vec, torso_front, torso_up) -> (float, float):
 
     face_front_side_proj = face_front.project_onto_plane(face_right).get_normal()
     torso_front_side_proj = torso_front.project_onto_plane(face_right).get_normal()
+
+    '''
+    log_safe(f'torso_front={torso_front}',
+             f'face_front={face_front}',
+             f'face_right={face_right}',
+             f'face_front_side_proj={face_front_side_proj}',
+             f'torso_front_side_proj={torso_front_side_proj}',
+             sep='\n')
+    '''
 
     # negative on face right to use face_left instead.
     pitch = Vec3.signed_angle(torso_front_side_proj, face_front_side_proj, -face_right)
@@ -287,10 +296,12 @@ def get_angles_math_3d(landmark_tuples):
 
     # head angles
     head_pitch, head_yaw = get_head_angles(get_as_vec, front_vector, up_vector)
+    head_yaw += math.pi / 4.0
+    head_yaw *= -1.0
 
     out_dic = {
-        # 'HeadPitch': head_pitch,
-        # 'HeadYaw': head_yaw,
+        #'HeadPitch': head_pitch,
+        'HeadYaw': head_yaw,
         'RShoulderRoll': r_shoulder_roll,
         'RShoulderPitch': r_shoulder_pitch,
         'RElbowYaw': r_elbow_yaw,
