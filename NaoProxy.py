@@ -17,6 +17,7 @@ class NaoSocketWorker(AsyncWorkerBase):
         self.proxy_port = proxy_port
         self.socket = None
         self.trying_to_connect = False
+        self.connected_to_service = False
 
     @pyqtSlot(dict)
     def send_pose_data(self, dic):
@@ -42,8 +43,11 @@ class NaoSocketWorker(AsyncWorkerBase):
                 self.send_raw('!')
             except Exception as e:
                 pass
-            self.socket.shutdown(socket.SHUT_RDWR)
-            self.socket.close()
+            try:
+                self.socket.shutdown(socket.SHUT_RDWR)
+                self.socket.close()
+            except Exception as e:
+                pass
             self.socket = None
 
     def try_connect_to_service(self):
@@ -54,14 +58,22 @@ class NaoSocketWorker(AsyncWorkerBase):
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.connect((self.proxy_host, self.proxy_port))
-                self.trying_to_connect = False
                 self.socket = sock
                 log_safe(f'Connected to socket')
-                self.on_connected_status_updated.emit(True)
-                return
+                self.connected_to_service = True
+                # wait for confirmation:
+                self.socket.settimeout(5.0)
+                service_confirm_msg = self.socket.recv(1024)
+                if len(service_confirm_msg) > 0:
+                    decoded = service_confirm_msg.decode('utf-8')
+                    self.trying_to_connect = False
+                    if decoded != 'k':
+                        log_safe(f'Connected to service but not to robot.')
+                    self.on_connected_status_updated.emit(decoded == 'k')
+                    return
             except Exception as e:
-                log_safe(f'Failed to connect to service: {e}')
                 self.socket = None
+        log_safe(f'Failed to connect to service.')
         self.trying_to_connect = False
         self.on_connected_status_updated.emit(False)
 

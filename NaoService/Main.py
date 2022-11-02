@@ -47,7 +47,9 @@ if __name__ == '__main__':
             socket.accept_wait()
             m = try_get_motion()
             if not m:
+                socket.send_to_client('!')
                 break
+            socket.send_to_client('k')
             m.wakeUp()
             if socket.loop():
                 m = try_get_motion()

@@ -135,21 +135,25 @@ class GUI(QMainWindow):
         self.connection_text.setText(CONN_TEXTS[new_status])
 
     def update_connection(self):
-        if not self.naoProxy:
-            self.connection_status = CONN_STATUS_NC
-            self.connection.hide()
-            try:
-                host, port = self.hostname_input.text(), self.port_input.text()
-                port = int(port)
-                log_safe(f'Creating nao proxy with host={host}, port={port}')
-                self.naoProxy = NaoProxy(parent=self,
-                                         nao_host=host,
-                                         nao_port=port,
-                                         connection_status_slot=self.on_connection_status_updated,
-                                         poseProcessorClass=MpPoseProcessorMath3D)
-                self.connection_text.setText(CONN_TEXTS[CONN_STATUS_WIP])
-            except Exception as e:
-                log_safe(f'Failed to create NAO Proxy: {e}')
+        if self.naoProxy:
+            self.naoProxy.close()
+            self.naoProxy = None
+
+        self.connection_status = CONN_STATUS_NC
+        self.connection.hide()
+        try:
+            host, port = self.hostname_input.text(), self.port_input.text()
+            port = int(port)
+            log_safe(f'Creating nao proxy with host={host}, port={port}')
+
+            self.naoProxy = NaoProxy(parent=self,
+                                     nao_host=host,
+                                     nao_port=port,
+                                     connection_status_slot=self.on_connection_status_updated,
+                                     poseProcessorClass=MpPoseProcessorMath3D)
+            self.connection_text.setText(CONN_TEXTS[CONN_STATUS_WIP])
+        except Exception as e:
+            log_safe(f'Failed to create NAO Proxy: {e}')
 
     def set_video_buttons_enabled(self, enabled: bool):
         for btn in [self.playButton, self.stopButton]:

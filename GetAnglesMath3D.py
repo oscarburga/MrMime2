@@ -29,12 +29,21 @@ idx_of = {
     'REar': 8,
     'LMouth': 9,
     'RMouth': 10,
+
     'RShoulder': 12,
     'RElbow': 14,
     'RWrist': 16,
+    'RPinky': 18,
+    'RIndex': 20,
+    'RThumb': 22,
+
     'LShoulder': 11,
     'LElbow': 13,
     'LWrist': 15,
+    'LPinky': 17,
+    'LIndex': 19,
+    'LThumb': 21,
+
     'RHip': 24,
     'LHip': 23
 }
@@ -207,6 +216,18 @@ def get_elbow_angles(shoulder, elbow, wrist, side_axis_ref) -> (float, float):
     return elbow_roll, elbow_yaw
 
 
+def get_wrist_yaw(shoulder, elbow, wrist, thumb, index, pinky) -> (float, float):
+    elbow_to_wrist = (wrist - elbow).get_normal()
+    arm_plane = elbow_to_wrist % (shoulder - elbow).get_normal()
+    wrist_pinky = (pinky - wrist).get_normal()
+    wrist_index = (index - wrist).get_normal()
+    wrist_thumb = (thumb - wrist). get_normal()
+    hand_plane_vec = (wrist_pinky % wrist_index).get_normal()
+    projected_hand_plane = hand_plane_vec.project_onto_plane(elbow_to_wrist).get_normal()
+    wrist_yaw = Vec3.signed_angle(arm_plane, projected_hand_plane, elbow_to_wrist)
+    return wrist_yaw
+
+
 def get_angles_math_3d(landmark_tuples):
 
     if not landmark_tuples or len(landmark_tuples) != 33:
@@ -286,18 +307,30 @@ def get_angles_math_3d(landmark_tuples):
     l_elbow_roll *= -1.0
     l_elbow_yaw -= math.pi
 
-    #right elbow angle
+    # right elbow angle
     r_elbow_roll, r_elbow_yaw = get_elbow_angles(r_shoulder,
                                                  r_elbow,
                                                  r_wrist,
                                                  right_vector)
-    # r_elbow_yaw
-
 
     # head angles
     head_pitch, head_yaw = get_head_angles(get_as_vec, front_vector, up_vector)
     head_yaw += math.pi / 4.0
     head_yaw *= -1.0
+
+    # left wrist
+    l_thumb = get_as_vec('LThumb')
+    l_index = get_as_vec('LIndex')
+    l_pinky = get_as_vec('LPinky')
+    l_wrist_yaw = get_wrist_yaw(l_shoulder, l_elbow, l_wrist, l_thumb, l_index, l_pinky)
+
+    # right wrist
+    r_thumb = get_as_vec('RThumb')
+    r_index = get_as_vec('RIndex')
+    r_pinky = get_as_vec('RPinky')
+    r_wrist_yaw = get_wrist_yaw(r_shoulder, r_elbow, r_wrist, r_thumb, r_index, r_pinky)
+
+    log_safe(f'RWristYaw: {r_wrist_yaw} - LWristYaw: {l_wrist_yaw}')
 
     out_dic = {
         #'HeadPitch': head_pitch,
@@ -309,7 +342,9 @@ def get_angles_math_3d(landmark_tuples):
         'LShoulderRoll': l_shoulder_roll,
         'LShoulderPitch': l_shoulder_pitch,
         'LElbowYaw': l_elbow_yaw,
-        'LElbowRoll': l_elbow_roll
+        'LElbowRoll': l_elbow_roll,
+        'LWristYaw': l_wrist_yaw,
+        'RWristYaw': r_wrist_yaw
     }
 
     for name, angle in out_dic.items():

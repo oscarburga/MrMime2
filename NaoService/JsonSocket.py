@@ -32,7 +32,14 @@ class JsonSocket:
         
         self.clientAddress = None
 
-
+    def send_to_client(self, msg):
+        if self.clientSocket:
+            total_sent = 0
+            while total_sent < len(msg):
+                sent = self.clientSocket.send(msg[total_sent:])
+                if sent == 0:
+                    break
+                total_sent += sent
 
     def loop(self):
         if not self.clientSocket or not self.clientAddress:
