@@ -99,14 +99,19 @@ class NaoProxy(QObject):
                  poseProcessorClass=MpPoseProcessorMath3D):
         super().__init__(parent)
 
-        cmd = f'RunService.bat {proxy_host} {proxy_port} {nao_host} {nao_port}'
+        cmd = f'ServiceBuild/Main.exe {proxy_host} {proxy_port} {nao_host} {nao_port}'
         cmd_list = cmd.split(' ')
+        self.naoServiceProcess = None
 
         try:
             log_safe(f'trying Popen nao service')
+            startupInfo = subprocess.STARTUPINFO()
+            startupInfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             self.naoServiceProcess = subprocess.Popen(cmd_list,
                                                       stdout=subprocess.PIPE,
-                                                      stderr=subprocess.PIPE)
+                                                      stderr=subprocess.PIPE,
+                                                      startupinfo=startupInfo
+                                                      )
 
             def read_from_service(proc):
                 for line in iter(proc.stdout.readline, b''):
@@ -117,6 +122,7 @@ class NaoProxy(QObject):
                                                   args=(self.naoServiceProcess,))
             self.serviceReader.start()
             log_safe(f'Popen nao service and reader ok')
+            pass
         except Exception as e:
             log_safe(f'Failed to Popen: {e}')
 
