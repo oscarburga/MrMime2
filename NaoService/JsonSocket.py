@@ -31,7 +31,7 @@ class JsonSocket:
             self.clientSocket = None
         
         self.clientAddress = None
-
+    
     def send_to_client(self, msg):
         if self.clientSocket:
             total_sent = 0
@@ -40,7 +40,7 @@ class JsonSocket:
                 if sent == 0:
                     break
                 total_sent += sent
-
+    
     def loop(self):
         if not self.clientSocket or not self.clientAddress:
             print 'cannot loop - no valid client or socket'
@@ -56,6 +56,7 @@ class JsonSocket:
                 break
             
             ascii_in = raw_in.encode('ascii', 'ignore')
+            print 'got str', ascii_in
             for i, x in enumerate(list(ascii_in)):
                 # close signal: stop everything.
                 if x == '!':

@@ -1,7 +1,6 @@
 import GetAnglesFromPoints2D as geom
 from GetAnglesMath3D import get_angles_math_3d
 
-from AsyncWorkerBase import log_safe
 
 def gen_dict(joints, angles):
     return {x: y for x, y in zip(joints, angles)}

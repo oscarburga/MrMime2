@@ -3,6 +3,7 @@ import socket
 from naoqi import ALProxy
 import json
 from JsonSocket import *
+from motion import FRAME_WORLD
 
 global Motion, stop_loop
 Motion = None
@@ -28,7 +29,8 @@ if __name__ == '__main__':
             return None
 
     def process_list_of_joint_dicts(object_list, jsonSocket):
-        global Motion, stop_loop
+        global Motion, stop_loop, REPLY_LOCATIONS
+        print('process list')
         for dic in reversed(object_list):
             if type(dic) == dict:
                 names = [name.encode('ascii', 'ignore') for name in dic.keys()]
@@ -36,7 +38,23 @@ if __name__ == '__main__':
                 if not m:
                     stop_loop = True
                     jsonSocket.shouldStop = True
-                m.setAngles(names, dic.values(), 1)
+                    print 'm failed - exit'
+                    return
+
+                if REPLY_LOCATIONS:
+                    print 'reply locations'
+                    # blocking call, but necessary for correct getPositions
+                    m.angleInterpolationWithSpeed(names, dic.values(), 1)
+                    print 'angle interpol done'
+                    nao_joint_locs = {}
+                    for joint in names:
+                        pos = m.getPosition(joint, FRAME_WORLD, True)
+                        nao_joint_locs[joint] = pos[:3]
+                    print 'send to client'
+                    jsonSocket.send_to_client(json.dumps(nao_joint_locs))
+                else:
+                    print 'normal set angles'
+                    m.setAngles(names, dic.values(), 1)
                 break
     
 

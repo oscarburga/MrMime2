@@ -23,16 +23,28 @@ SOCKET_HOST = "localhost"
 SOCKET_PORT = 8083
 NAO_HOST = "127.0.0.1"
 NAO_PORT = 9559
+REPLY_LOCATIONS = False
 
-if len(sys.argv) == 3:
-    NAO_HOST = str(sys.argv[1])
-    NAO_PORT = int(sys.argv[2])
+def set_args():
+    global REPLY_LOCATIONS
+    args = sys.argv
 
-elif len(sys.argv) == 5:
-    SOCKET_HOST = str(sys.argv[1])
-    SOCKET_PORT = int(sys.argv[2])
-    NAO_HOST = str(sys.argv[3])
-    NAO_PORT = int(sys.argv[4])
+    if '--reply' in args:
+        print('Replying locations')
+        REPLY_LOCATIONS = True
+        args.remove('--reply')
+        
+    if len(args) == 3:
+        NAO_HOST = str(args[1])
+        NAO_PORT = int(args[2])
+
+    elif len(args) == 5:
+        SOCKET_HOST = str(args[1])
+        SOCKET_PORT = int(args[2])
+        NAO_HOST = str(args[3])
+        NAO_PORT = int(args[4])
+    
+set_args()
 
 print 'Working with NAO host =', NAO_HOST, 'and NAO port =', NAO_PORT
 print 'Working with SOCKET host =', SOCKET_HOST, 'and SOCKET port =', SOCKET_PORT
